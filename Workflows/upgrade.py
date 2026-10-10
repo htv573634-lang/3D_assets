@@ -34,48 +34,14 @@ for obj in bpy.context.scene.objects:
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
         obj.select = False
 
-# 4. FORCE REBUILD THE MATERIAL (The fix for the black model!)
-if os.path.exists(texture_path):
-    print("Found texture. Rebuilding material for OBJ export...")
-    try:
-        img = bpy.data.images.load(texture_path)
-        
-        # Create a new Blender Internal material
-        mat = bpy.data.materials.new(name="Zuleyka_Skin_Material")
-        mat.use_nodes = False # Important for 2.79 OBJ exporter
-        
-        # Add a texture slot
-        mat.texture_slots.add()
-        tex_slot = mat.texture_slots[0]
-        
-        # Create the texture
-        tex = bpy.data.textures.new(name="Zuleyka_Texture", type='IMAGE')
-        tex.image = img
-        
-        # Link texture to diffuse channel
-        tex_slot.texture = tex
-        tex_slot.use_map_color_diffuse = True
-        tex_slot.use_map_color_alpha = True # Handles hair transparency
-        
-        # Assign this new material to all meshes
-        meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
-        for obj in meshes:
-            obj.data.materials.clear()
-            obj.data.materials.append(mat)
-        print("Material rebuilt and assigned successfully.")
-    except Exception as e:
-        print("Failed to rebuild material: {}".format(e))
-else:
-    print("WARNING: Texture file not found! Cannot rebuild material.")
-
-# 5. Select only the body mesh for export
+# 4. Select only the body mesh for export
 bpy.ops.object.select_all(action='DESELECT')
 meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
 for obj in meshes:
     obj.select = True
     print("Selected for export: {}".format(obj.name))
 
-# 6. Export OBJ
+# 5. Export OBJ (Blender will write its own .mtl, but we will overwrite it)
 obj_path = os.path.join(export_dir, "{}.obj".format(model_name))
 try:
     bpy.ops.export_scene.obj(
@@ -88,6 +54,24 @@ try:
 except Exception as e:
     print("OBJ export FAILED: {}".format(e))
 
+# 6. FORCE WRITE A PERFECT MTL FILE
+# This is the key fix. We manually write the MTL so Assimp can read it perfectly.
+mtl_path = os.path.join(export_dir, "{}.mtl".format(model_name))
+mtl_content = """newmtl Zuleyka_Skin_Material
+Ka 1.000 1.000 1.000
+Kd 1.000 1.000 1.000
+Ks 0.000 0.000 0.000
+d 1.0
+illum 2
+map_Kd Zuleyka_Skin.PNG
+"""
+try:
+    with open(mtl_path, "w") as f:
+        f.write(mtl_content)
+    print("Manually wrote perfect MTL file: {}".format(mtl_path))
+except Exception as e:
+    print("Failed to write MTL file: {}".format(e))
+
 # 7. Manually copy the texture to the Output folder
 if os.path.exists(texture_path):
     try:
@@ -95,5 +79,7 @@ if os.path.exists(texture_path):
         print("Texture copied to Output folder successfully.")
     except Exception as e:
         print("Failed to copy texture: {}".format(e))
+else:
+    print("WARNING: Texture not found in Models folder! Cannot copy to Output.")
 
-print("==================================================")q
+print("==================================================")
