@@ -1,0 +1,28 @@
+name: Inspect Blend File
+
+on:
+  workflow_dispatch: # This lets you run it manually
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Blender and Numpy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender python3-numpy
+
+      - name: Run Inspection Script
+        run: |
+          for file in Models/*.blend; do
+            if [ -f "$file" ]; then
+              echo "=================================================="
+              echo "Inspecting: $file"
+              echo "=================================================="
+              blender -b "$file" -P Workflows/inspect.py
+            fi
+          done
