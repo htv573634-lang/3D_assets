@@ -1,44 +1,35 @@
-name: Extract 3D Assets
+import bpy
+import os
 
-on:
-  push:
-    paths:
-      - 'Models/*.blend'
-  workflow_dispatch: 
+print("==================================================")
+print("STARTING UPGRADE SCRIPT (Blender 2.79)")
+print("==================================================")
 
-jobs:
-  extract:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
+# 1. Get paths
+blend_path = bpy.data.filepath
+model_name = os.path.splitext(os.path.basename(blend_path))[0]
+models_dir = os.path.dirname(blend_path)
+repo_root = os.path.dirname(models_dir)
+export_dir = os.path.join(repo_root, "Output")
+os.makedirs(export_dir, exist_ok=True)
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+# 2. Delete the sword
+if "Sword1" in bpy.data.objects:
+    obj = bpy.data.objects["Sword1"]
+    bpy.data.objects.remove(obj, do_unlink=True)
+    print("Successfully deleted Sword1 object.")
+else:
+    print("Sword1 not found, skipping deletion.")
 
-      - name: Setup Git LFS
-        run: git lfs install
+# 3. Pack all textures (requires Zuleyka_Skin.PNG to be in Models/)
+try:
+    bpy.ops.file.pack_all()
+    print("Textures packed successfully.")
+except Exception as e:
+    print("Warning: Could not pack textures. {}".format(e))
 
-      - name: Install Blender and Numpy
-        run: |
-          sudo apt-get update
-          # We added python3-numpy here to fix the GLTF exporter crash
-          sudo apt-get install -y blender python3-numpy
-
-      - name: Run Extraction Script on All Models
-        run: |
-          for file in Models/*.blend; do
-            if [ -f "$file" ]; then
-              echo "Processing $file..."
-              blender -b "$file" -P Workflows/extract.py
-            fi
-          done
-
-      - name: Commit and Push Output
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          # We changed this to "git add ." so it catches the modified .blend file and the Output folder
-          git add .
-          git commit -m "Auto-extracted OBJ and GLB assets" || echo "No changes to commit"
-          git push
+# 4. Save the clean, upgraded file
+new_blend_path = os.path.join(export_dir, "{}_clean.blend".format(model_name))
+bpy.ops.wm.save_as_mainfile(filepath=new_blend_path)
+print("Saved clean, modernized file to: {}".format(new_blend_path))
+print("==================================================")
