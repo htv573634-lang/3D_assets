@@ -1,4 +1,4 @@
-name: Upgrade and Extract 3D Assets
+name: Extract OBJ Assets
 
 on:
   workflow_dispatch: 
@@ -26,25 +26,12 @@ jobs:
           tar -xf blender-2.79b-linux-glibc219-x86_64.tar.bz2
           mv blender-2.79b-linux-glibc219-x86_64 blender_legacy
 
-      - name: Run Upgrade Script (Blender 2.79)
+      - name: Run Export Script (Blender 2.79b)
         run: |
           for file in Models/*.blend; do
             if [ -f "$file" ]; then
-              echo "Upgrading $file..."
+              echo "Processing $file..."
               ./blender_legacy/blender -b "$file" -P Workflows/upgrade.py
-            fi
-          done
-
-      - name: Install Modern Blender and Numpy
-        run: |
-          sudo apt-get install -y blender python3-numpy
-
-      - name: Run Extraction Script (Blender 4.0)
-        run: |
-          for file in Output/*_clean.blend; do
-            if [ -f "$file" ]; then
-              echo "Extracting from $file..."
-              blender -b "$file" -P Workflows/extract.py
             fi
           done
 
@@ -57,7 +44,6 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          # Explicitly add only the folders we want to track
           git add Output/ Models/ .github/ Workflows/ .gitignore .gitattributes
-          git commit -m "Auto-upgraded and extracted OBJ and GLB assets" || echo "No changes to commit"
+          git commit -m "Auto-extracted OBJ assets" || echo "No changes to commit"
           git push
