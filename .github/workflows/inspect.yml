@@ -11,6 +11,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install Legacy Dependencies
+        run: |
+          sudo apt-get update
+          # These are the old graphics libraries needed by Blender 2.79b
+          sudo apt-get install -y libglu1-mesa libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1
+
       - name: Download Blender 2.79b (Ancient Support)
         run: |
           wget -q https://download.blender.org/release/Blender2.79/blender-2.79b-linux-glibc219-x86_64.tar.bz2
