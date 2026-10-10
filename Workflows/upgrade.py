@@ -21,10 +21,8 @@ print("Looking for texture at: {}".format(texture_path))
 if "Sword1" in bpy.data.objects:
     bpy.data.objects.remove(bpy.data.objects["Sword1"], do_unlink=True)
     print("Successfully deleted Sword1 object.")
-else:
-    print("Sword1 not found, skipping deletion.")
 
-# 3. Scale the model up by 400x (from mm to human scale)
+# 3. Scale the model up by 400x
 print("Scaling model up by 400x...")
 for obj in bpy.context.scene.objects:
     if obj.type == 'MESH':
@@ -34,14 +32,68 @@ for obj in bpy.context.scene.objects:
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
         obj.select = False
 
-# 4. Select only the body mesh for export
+# 4. FIX HANDS: Apply Armature Modifier to freeze the T-pose
+print("Applying armature to fix hands...")
+for obj in bpy.context.scene.objects:
+    if obj.type == 'MESH':
+        bpy.context.scene.objects.active = obj
+        obj.select = True
+        for mod in obj.modifiers:
+            if mod.type == 'ARMATURE':
+                try:
+                    bpy.ops.object.modifier_apply(modifier=mod.name)
+                    print("Applied armature modifier to: {}".format(obj.name))
+                except Exception as e:
+                    print("Could not apply modifier: {}".format(e))
+        
+        # Smooth the mesh so it doesn't look like a sharp plank
+        bpy.ops.object.shade_smooth()
+        obj.select = False
+
+# 5. FORCE UV UNWRAPPING
+print("Forcing UV unwrap...")
+bpy.ops.object.select_all(action='DESELECT')
+for obj in bpy.context.scene.objects:
+    if obj.type == 'MESH':
+        bpy.context.scene.objects.active = obj
+        obj.select = True
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.uv.smart_project(angle_limit=66, island_margin=0.02)
+        bpy.ops.object.mode_set(mode='OBJECT')
+        obj.select = False
+        print("UV Unwrapped: {}".format(obj.name))
+
+# 6. FORCE REBUILD THE MATERIAL
+if os.path.exists(texture_path):
+    print("Rebuilding material with texture...")
+    try:
+        img = bpy.data.images.load(texture_path)
+        mat = bpy.data.materials.new(name="Zuleyka_Skin_Material")
+        mat.use_nodes = False
+        mat.texture_slots.add()
+        tex_slot = mat.texture_slots[0]
+        tex = bpy.data.textures.new(name="Zuleyka_Texture", type='IMAGE')
+        tex.image = img
+        tex_slot.texture = tex
+        tex_slot.use_map_color_diffuse = True
+        tex_slot.use_map_color_alpha = True
+        
+        meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
+        for obj in meshes:
+            obj.data.materials.clear()
+            obj.data.materials.append(mat)
+        print("Material assigned.")
+    except Exception as e:
+        print("Failed to rebuild material: {}".format(e))
+
+# 7. Select only the body mesh for export
 bpy.ops.object.select_all(action='DESELECT')
 meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
 for obj in meshes:
     obj.select = True
-    print("Selected for export: {}".format(obj.name))
 
-# 5. Export OBJ (Blender will write its own .mtl, but we will overwrite it)
+# 8. Export OBJ
 obj_path = os.path.join(export_dir, "{}.obj".format(model_name))
 try:
     bpy.ops.export_scene.obj(
@@ -54,8 +106,7 @@ try:
 except Exception as e:
     print("OBJ export FAILED: {}".format(e))
 
-# 6. FORCE WRITE A PERFECT MTL FILE
-# This is the key fix. We manually write the MTL so Assimp can read it perfectly.
+# 9. FORCE WRITE A PERFECT MTL FILE
 mtl_path = os.path.join(export_dir, "{}.mtl".format(model_name))
 mtl_content = """newmtl Zuleyka_Skin_Material
 Ka 1.000 1.000 1.000
@@ -68,18 +119,13 @@ map_Kd Zuleyka_Skin.PNG
 try:
     with open(mtl_path, "w") as f:
         f.write(mtl_content)
-    print("Manually wrote perfect MTL file: {}".format(mtl_path))
+    print("Manually wrote perfect MTL file.")
 except Exception as e:
     print("Failed to write MTL file: {}".format(e))
 
-# 7. Manually copy the texture to the Output folder
+# 10. Manually copy the texture
 if os.path.exists(texture_path):
-    try:
-        shutil.copy(texture_path, os.path.join(export_dir, "Zuleyka_Skin.PNG"))
-        print("Texture copied to Output folder successfully.")
-    except Exception as e:
-        print("Failed to copy texture: {}".format(e))
-else:
-    print("WARNING: Texture not found in Models folder! Cannot copy to Output.")
+    shutil.copy(texture_path, os.path.join(export_dir, "Zuleyka_Skin.PNG"))
+    print("Texture copied to Output folder.")
 
 print("==================================================")
