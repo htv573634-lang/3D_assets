@@ -22,7 +22,7 @@ if "Sword1" in bpy.data.objects:
     bpy.data.objects.remove(bpy.data.objects["Sword1"], do_unlink=True)
     print("Successfully deleted Sword1 object.")
 
-# 3. Scale the model up by 400x
+# 3. Scale the model up by 400x (No Armature Application!)
 print("Scaling model up by 400x...")
 for obj in bpy.context.scene.objects:
     if obj.type == 'MESH':
@@ -32,39 +32,25 @@ for obj in bpy.context.scene.objects:
         bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
         obj.select = False
 
-# 4. FIX HANDS: Apply Armature Modifier to freeze the T-pose
-print("Applying armature to fix hands...")
-for obj in bpy.context.scene.objects:
-    if obj.type == 'MESH':
-        bpy.context.scene.objects.active = obj
-        obj.select = True
-        for mod in obj.modifiers:
-            if mod.type == 'ARMATURE':
-                try:
-                    bpy.ops.object.modifier_apply(modifier=mod.name)
-                    print("Applied armature modifier to: {}".format(obj.name))
-                except Exception as e:
-                    print("Could not apply modifier: {}".format(e))
-        
-        # Smooth the mesh so it doesn't look like a sharp plank
-        bpy.ops.object.shade_smooth()
-        obj.select = False
-
-# 5. FORCE UV UNWRAPPING
-print("Forcing UV unwrap...")
+# 4. CHECK FOR EXISTING UV MAPS (Preserve if exists)
+print("Checking for UV maps...")
 bpy.ops.object.select_all(action='DESELECT')
 for obj in bpy.context.scene.objects:
     if obj.type == 'MESH':
         bpy.context.scene.objects.active = obj
         obj.select = True
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.uv.smart_project(angle_limit=66, island_margin=0.02)
-        bpy.ops.object.mode_set(mode='OBJECT')
+        
+        if len(obj.data.uv_layers) == 0:
+            print("No UV map found on {}. Creating one...".format(obj.name))
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.select_all(action='SELECT')
+            bpy.ops.uv.smart_project(angle_limit=66, island_margin=0.02)
+            bpy.ops.object.mode_set(mode='OBJECT')
+        else:
+            print("Original UV map found on {}. Preserving it.".format(obj.name))
         obj.select = False
-        print("UV Unwrapped: {}".format(obj.name))
 
-# 6. FORCE REBUILD THE MATERIAL
+# 5. REBUILD THE MATERIAL (For OBJ export)
 if os.path.exists(texture_path):
     print("Rebuilding material with texture...")
     try:
@@ -87,26 +73,26 @@ if os.path.exists(texture_path):
     except Exception as e:
         print("Failed to rebuild material: {}".format(e))
 
-# 7. Select only the body mesh for export
+# 6. Select body mesh and export OBJ
 bpy.ops.object.select_all(action='DESELECT')
 meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
 for obj in meshes:
     obj.select = True
 
-# 8. Export OBJ
 obj_path = os.path.join(export_dir, "{}.obj".format(model_name))
 try:
     bpy.ops.export_scene.obj(
         filepath=obj_path,
         use_selection=True,
         use_materials=True,
+        use_uvs=True,
         path_mode='RELATIVE' 
     )
     print("OBJ exported successfully: {}".format(obj_path))
 except Exception as e:
     print("OBJ export FAILED: {}".format(e))
 
-# 9. FORCE WRITE A PERFECT MTL FILE
+# 7. FORCE WRITE A PERFECT MTL FILE
 mtl_path = os.path.join(export_dir, "{}.mtl".format(model_name))
 mtl_content = """newmtl Zuleyka_Skin_Material
 Ka 1.000 1.000 1.000
@@ -123,7 +109,7 @@ try:
 except Exception as e:
     print("Failed to write MTL file: {}".format(e))
 
-# 10. Manually copy the texture
+# 8. Manually copy the texture
 if os.path.exists(texture_path):
     shutil.copy(texture_path, os.path.join(export_dir, "Zuleyka_Skin.PNG"))
     print("Texture copied to Output folder.")
