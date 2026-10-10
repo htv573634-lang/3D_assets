@@ -11,7 +11,7 @@ jobs:
       - name: Checkout repository with LFS
         uses: actions/checkout@v4
         with:
-          lfs: true # <--- THIS IS THE CRITICAL FIX
+          lfs: true 
 
       - name: Install Legacy Dependencies
         run: |
