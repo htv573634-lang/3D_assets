@@ -2,7 +2,7 @@ import bpy
 import os
 
 print("==================================================")
-print("STARTING UPGRADE SCRIPT (Blender 2.79)")
+print("STARTING EXPORT SCRIPT (Blender 2.79b)")
 print("==================================================")
 
 # 1. Get paths
@@ -21,15 +21,31 @@ if "Sword1" in bpy.data.objects:
 else:
     print("Sword1 not found, skipping deletion.")
 
-# 3. Pack all textures (requires Zuleyka_Skin.PNG to be in Models/)
+# 3. Pack all textures (ensures Zuleyka_Skin.PNG is embedded)
 try:
     bpy.ops.file.pack_all()
     print("Textures packed successfully.")
 except Exception as e:
     print("Warning: Could not pack textures. {}".format(e))
 
-# 4. Save the clean, upgraded file
-new_blend_path = os.path.join(export_dir, "{}_clean.blend".format(model_name))
-bpy.ops.wm.save_as_mainfile(filepath=new_blend_path)
-print("Saved clean, modernized file to: {}".format(new_blend_path))
+# 4. Select only the body mesh for export
+bpy.ops.object.select_all(action='DESELECT')
+for obj in bpy.context.scene.objects:
+    if obj.type == 'MESH':
+        obj.select_set(True)
+        print("Selected for export: {}".format(obj.name))
+
+# 5. Export OBJ with materials and copy the texture to the Output folder
+obj_path = os.path.join(export_dir, "{}.obj".format(model_name))
+try:
+    bpy.ops.export_scene.obj(
+        filepath=obj_path,
+        use_selection=True,
+        use_materials=True,
+        path_mode='COPY' # CRITICAL: This copies Zuleyka_Skin.PNG to the Output folder
+    )
+    print("OBJ exported successfully: {}".format(obj_path))
+except Exception as e:
+    print("OBJ export failed: {}".format(e))
+
 print("==================================================")
