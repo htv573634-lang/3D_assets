@@ -11,11 +11,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download Blender 2.93 (Legacy Support)
+      - name: Download Blender 2.79b (Ancient Support)
         run: |
-          wget -q https://download.blender.org/release/Blender2.93/blender-2.93.7-linux-x64.tar.xz
-          tar -xf blender-2.93.7-linux-x64.tar.xz
-          mv blender-2.93.7-linux-x64 blender_legacy
+          wget -q https://download.blender.org/release/Blender2.79/blender-2.79b-linux-glibc219-x86_64.tar.bz2
+          tar -xf blender-2.79b-linux-glibc219-x86_64.tar.bz2
+          mv blender-2.79b-linux-glibc219-x86_64 blender_legacy
 
       - name: Run Inspection Script
         run: |
