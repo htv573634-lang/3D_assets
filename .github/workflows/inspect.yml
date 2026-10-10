@@ -1,7 +1,7 @@
 name: Inspect Blend File
 
 on:
-  workflow_dispatch: # This lets you run it manually
+  workflow_dispatch: 
 
 jobs:
   inspect:
@@ -11,10 +11,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Blender and Numpy
+      - name: Download Blender 2.93 (Legacy Support)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y blender python3-numpy
+          wget -q https://download.blender.org/release/Blender2.93/blender-2.93.7-linux-x64.tar.xz
+          tar -xf blender-2.93.7-linux-x64.tar.xz
+          mv blender-2.93.7-linux-x64 blender_legacy
 
       - name: Run Inspection Script
         run: |
@@ -23,6 +24,6 @@ jobs:
               echo "=================================================="
               echo "Inspecting: $file"
               echo "=================================================="
-              blender -b "$file" -P Workflows/inspect.py
+              ./blender_legacy/blender -b "$file" -P Workflows/inspect.py
             fi
           done
