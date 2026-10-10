@@ -1,1 +1,3 @@
-.
+# Ignore downloaded Blender binaries
+blender_legacy/
+blender-*.tar.bz2
