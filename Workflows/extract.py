@@ -2,41 +2,36 @@ import bpy
 import os
 import addon_utils
 
-# 1. Explicitly enable the GLTF exporter addon (Crucial for headless Blender)
+print("==================================================")
+print("STARTING EXTRACTION SCRIPT (Blender 4.0)")
+print("==================================================")
+
+# 1. Enable GLTF exporter
 try:
     addon_utils.enable("io_scene_gltf2")
-    print("GLTF addon enabled successfully.")
 except Exception as e:
-    print(f"Failed to enable GLTF addon: {e}")
+    print("Failed to enable GLTF addon: {}".format(e))
 
-# 2. Get the path of the current .blend file being processed
+# 2. Get paths
 blend_path = bpy.data.filepath
-if not blend_path:
-    print("Error: Please run this script with a .blend file loaded.")
-    exit()
-
-model_name = os.path.splitext(os.path.basename(blend_path))[0]
-
-# 3. Define Paths
-models_dir = os.path.dirname(blend_path)
-repo_root = os.path.dirname(models_dir)
+# Remove the "_clean" suffix so the final files are just named "Zuleyka"
+model_name = os.path.splitext(os.path.basename(blend_path))[0].replace("_clean", "")
+repo_root = os.path.dirname(os.path.dirname(blend_path))
 export_dir = os.path.join(repo_root, "Output")
-os.makedirs(export_dir, exist_ok=True)
 
-print(f"--- Processing Model: {model_name} ---")
-
-# 4. Deselect all objects and select all meshes
+# 3. Select all mesh objects (which is now just the body)
 bpy.ops.object.select_all(action='DESELECT')
 meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
 for obj in meshes:
     obj.select_set(True)
+    print("Selected object for export: {}".format(obj.name))
 
 if not meshes:
-    print(f"Warning: No meshes found in {model_name}. Skipping export.")
+    print("Error: No meshes found. Exiting.")
     exit()
 
-# 5. Export as OBJ
-obj_path = os.path.join(export_dir, f"{model_name}.obj")
+# 4. Export as OBJ
+obj_path = os.path.join(export_dir, "{}.obj".format(model_name))
 try:
     bpy.ops.wm.obj_export(
         filepath=obj_path,
@@ -44,7 +39,7 @@ try:
         export_materials=True,
         path_mode='COPY'
     )
-    print(f"[{model_name}] OBJ export successful.")
+    print("OBJ exported: {}".format(obj_path))
 except AttributeError:
     bpy.ops.export_scene.obj(
         filepath=obj_path,
@@ -52,10 +47,10 @@ except AttributeError:
         use_materials=True,
         path_mode='COPY'
     )
-    print(f"[{model_name}] OBJ export successful (legacy).")
+    print("OBJ exported (legacy): {}".format(obj_path))
 
-# 6. Export as GLB (with explicit error catching)
-glb_path = os.path.join(export_dir, f"{model_name}.glb")
+# 5. Export as GLB
+glb_path = os.path.join(export_dir, "{}.glb".format(model_name))
 try:
     bpy.ops.export_scene.gltf(
         filepath=glb_path,
@@ -63,8 +58,13 @@ try:
         use_selection=True,
         export_animations=True
     )
-    print(f"[{model_name}] GLB export successful.")
+    print("GLB exported: {}".format(glb_path))
 except Exception as e:
-    print(f"[{model_name}] GLB export FAILED: {e}")
+    print("GLB export FAILED: {}".format(e))
 
-print("Done!")
+# 6. Clean up the intermediate _clean blend file so it doesn't clutter the repo
+if os.path.exists(blend_path) and "_clean" in blend_path:
+    os.remove(blend_path)
+    print("Removed temporary clean blend file.")
+
+print("==================================================")
