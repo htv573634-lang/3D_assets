@@ -21,11 +21,11 @@ except AttributeError:
     bpy.ops.import_scene.obj(filepath=obj_path)
     print("OBJ imported successfully (Legacy API).")
 
-# NOTE: Olympias is a high-poly realistic model. 
-# If she appears too small in your viewer, uncomment the lines below to scale her.
-# for obj in bpy.context.scene.objects:
-#     if obj.type == 'MESH':
-#         obj.scale = (10.0, 10.0, 10.0)
+# Scale the model (Olympias is a high-poly realistic model)
+# If she appears too small in your viewer, adjust these numbers.
+for obj in bpy.context.scene.objects:
+    if obj.type == 'MESH':
+        obj.scale = (10.0, 10.0, 10.0)
 
 # Export as GLB
 try:
