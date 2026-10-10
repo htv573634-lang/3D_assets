@@ -1,4 +1,4 @@
-name: Extract OBJ Assets
+name: Extract and Convert Assets
 
 on:
   workflow_dispatch: 
@@ -35,15 +35,26 @@ jobs:
             fi
           done
 
-      - name: Clean up temporary Blender binaries
+      - name: Clean up Blender binaries
         run: |
           rm -rf blender_legacy
           rm -f blender-*.tar.bz2
+
+      - name: Install Assimp (Fast OBJ to GLB Converter)
+        run: |
+          sudo apt-get install -y assimp-utils
+
+      - name: Convert OBJ to GLB
+        run: |
+          cd Output
+          # Assimp automatically reads the .mtl and .png to embed the texture
+          assimp export Zuleyka.obj Zuleyka.glb
+          cd ..
 
       - name: Commit and Push Output
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add Output/ Models/ .github/ Workflows/ .gitignore .gitattributes
-          git commit -m "Auto-extracted OBJ assets" || echo "No changes to commit"
+          git add Output/
+          git commit -m "Auto-extracted, scaled, and converted assets" || echo "No changes to commit"
           git push
