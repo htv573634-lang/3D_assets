@@ -1,35 +1,58 @@
-import bpy
-import os
+name: Upgrade and Extract 3D Assets
 
-print("==================================================")
-print("STARTING UPGRADE SCRIPT (Blender 2.79)")
-print("==================================================")
+on:
+  workflow_dispatch: 
 
-# 1. Get paths
-blend_path = bpy.data.filepath
-model_name = os.path.splitext(os.path.basename(blend_path))[0]
-models_dir = os.path.dirname(blend_path)
-repo_root = os.path.dirname(models_dir)
-export_dir = os.path.join(repo_root, "Output")
-os.makedirs(export_dir, exist_ok=True)
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
-# 2. Delete the sword
-if "Sword1" in bpy.data.objects:
-    obj = bpy.data.objects["Sword1"]
-    bpy.data.objects.remove(obj, do_unlink=True)
-    print("Successfully deleted Sword1 object.")
-else:
-    print("Sword1 not found, skipping deletion.")
+    steps:
+      - name: Checkout repository with LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
 
-# 3. Pack all textures (requires Zuleyka_Skin.PNG to be in Models/)
-try:
-    bpy.ops.file.pack_all()
-    print("Textures packed successfully.")
-except Exception as e:
-    print("Warning: Could not pack textures. {}".format(e))
+      - name: Install Legacy Dependencies
+        run: |
+          sudo apt-get update
+          # Old graphics libraries needed by Blender 2.79b
+          sudo apt-get install -y libglu1-mesa libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1
 
-# 4. Save the clean, upgraded file
-new_blend_path = os.path.join(export_dir, "{}_clean.blend".format(model_name))
-bpy.ops.wm.save_as_mainfile(filepath=new_blend_path)
-print("Saved clean, modernized file to: {}".format(new_blend_path))
-print("==================================================")
+      - name: Download Blender 2.79b (Legacy)
+        run: |
+          wget -q https://download.blender.org/release/Blender2.79/blender-2.79b-linux-glibc219-x86_64.tar.bz2
+          tar -xf blender-2.79b-linux-glibc219-x86_64.tar.bz2
+          mv blender-2.79b-linux-glibc219-x86_64 blender_legacy
+
+      - name: Run Upgrade Script (Blender 2.79)
+        run: |
+          for file in Models/*.blend; do
+            if [ -f "$file" ]; then
+              echo "Upgrading $file..."
+              ./blender_legacy/blender -b "$file" -P Workflows/upgrade.py
+            fi
+          done
+
+      - name: Install Modern Blender and Numpy
+        run: |
+          sudo apt-get install -y blender python3-numpy
+
+      - name: Run Extraction Script (Blender 4.0)
+        run: |
+          for file in Output/*_clean.blend; do
+            if [ -f "$file" ]; then
+              echo "Extracting from $file..."
+              blender -b "$file" -P Workflows/extract.py
+            fi
+          done
+
+      - name: Commit and Push Output
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add .
+          git commit -m "Auto-upgraded and extracted OBJ and GLB assets" || echo "No changes to commit"
+          git push
