@@ -31,14 +31,25 @@ try:
 except Exception as e:
     print("Warning: Could not pack textures. {}".format(e))
 
-# 4. Select only the body mesh (Using Blender 2.79 API syntax)
+# 4. Scale the model up by 400x (to convert from mm to human scale)
+print("Scaling model up by 400x...")
+for obj in bpy.context.scene.objects:
+    if obj.type == 'MESH':
+        obj.scale = (400.0, 400.0, 400.0)
+        bpy.context.scene.objects.active = obj
+        obj.select = True
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+        obj.select = False
+        print("Scaled: {}".format(obj.name))
+
+# 5. Select only the body mesh for export
 bpy.ops.object.select_all(action='DESELECT')
 meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
 for obj in meshes:
-    obj.select = True  # <--- FIXED: Changed from select_set(True)
+    obj.select = True
     print("Selected for export: {}".format(obj.name))
 
-# 5. Export OBJ
+# 6. Export OBJ
 obj_path = os.path.join(export_dir, "{}.obj".format(model_name))
 try:
     bpy.ops.export_scene.obj(
@@ -51,7 +62,7 @@ try:
 except Exception as e:
     print("OBJ export FAILED: {}".format(e))
 
-# 6. Manually copy the texture to the Output folder
+# 7. Manually copy the texture to the Output folder
 if os.path.exists(texture_path):
     try:
         shutil.copy(texture_path, os.path.join(export_dir, "Zuleyka_Skin.PNG"))
