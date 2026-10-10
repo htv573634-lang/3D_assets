@@ -3,7 +3,8 @@ name: Extract 3D Assets
 on:
   push:
     paths:
-      - 'Models/*.blend' # Triggers only when a .blend file is added/changed
+      - 'Models/*.blend'
+  workflow_dispatch: # <-- This adds the manual "Run workflow" button
 
 jobs:
   extract:
