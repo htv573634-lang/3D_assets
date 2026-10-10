@@ -21,20 +21,20 @@ except AttributeError:
     bpy.ops.import_scene.obj(filepath=obj_path)
     print("OBJ imported successfully (Legacy API).")
 
-# Scale the model up by 400x (safe here, no armature to break)
-print("Scaling model up by 400x...")
+# Scale the model up by 400x
 for obj in bpy.context.scene.objects:
     if obj.type == 'MESH':
         obj.scale = (400.0, 400.0, 400.0)
 
 # Force-create a brand-new material with the texture
-texture_path = os.path.join(os.path.dirname(obj_path), "Zuleyka_Skin.PNG")
+# Updated to lowercase .png
+texture_path = os.path.join(os.path.dirname(obj_path), "Zuleyka_Skin.png")
+
 if os.path.exists(texture_path):
     print("Applying texture from: {}".format(texture_path))
     try:
         img = bpy.data.images.load(texture_path)
         
-        # Create a modern Principled BSDF material
         mat = bpy.data.materials.new(name="Zuleyka_Material")
         mat.use_nodes = True
         nodes = mat.node_tree.nodes
@@ -49,7 +49,6 @@ if os.path.exists(texture_path):
         links.new(tex_node.outputs['Color'], bsdf.inputs['Base Color'])
         links.new(bsdf.outputs['BSDF'], output.inputs['Surface'])
         
-        # Assign to all meshes
         for obj in bpy.context.scene.objects:
             if obj.type == 'MESH':
                 obj.data.materials.clear()
@@ -60,7 +59,7 @@ if os.path.exists(texture_path):
 else:
     print("Warning: Texture not found at {}".format(texture_path))
 
-# Export as GLB with textures embedded
+# Export as GLB
 try:
     bpy.ops.export_scene.gltf(
         filepath=glb_path,
