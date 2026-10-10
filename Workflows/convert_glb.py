@@ -1,0 +1,26 @@
+import bpy
+import os
+import sys
+
+# Get the input and output paths from the command line arguments
+argv = sys.argv
+argv = argv[argv.index("--") + 1:]  # get all args after "--"
+obj_path = argv[0]
+glb_path = argv[1]
+
+print("Converting {} to {}".format(obj_path, glb_path))
+
+# Clear the default scene
+bpy.ops.wm.read_factory_settings(use_empty=True)
+
+# Import the OBJ file (this automatically reads the MTL and loads the texture)
+bpy.ops.import_scene.obj(filepath=obj_path)
+
+# Export as GLB with textures embedded
+bpy.ops.export_scene.gltf(
+    filepath=glb_path,
+    export_format='GLB',
+    export_materials=True,
+    export_image_format='AUTO'
+)
+print("Conversion complete!")
