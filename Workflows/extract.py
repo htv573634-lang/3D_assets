@@ -1,26 +1,31 @@
 import bpy
 import os
+import addon_utils
 
-# 1. Get the path of the current .blend file being processed
+# 1. Explicitly enable the GLTF exporter addon (Crucial for headless Blender)
+try:
+    addon_utils.enable("io_scene_gltf2")
+    print("GLTF addon enabled successfully.")
+except Exception as e:
+    print(f"Failed to enable GLTF addon: {e}")
+
+# 2. Get the path of the current .blend file being processed
 blend_path = bpy.data.filepath
 if not blend_path:
     print("Error: Please run this script with a .blend file loaded.")
     exit()
 
-# Extract the model name (e.g., "Zuleyka" from "Zuleyka.blend")
 model_name = os.path.splitext(os.path.basename(blend_path))[0]
 
-# 2. Define Paths dynamically based on the repo structure
+# 3. Define Paths
 models_dir = os.path.dirname(blend_path)
 repo_root = os.path.dirname(models_dir)
 export_dir = os.path.join(repo_root, "Output")
-
-# Create Output directory if it doesn't exist
 os.makedirs(export_dir, exist_ok=True)
 
 print(f"--- Processing Model: {model_name} ---")
 
-# 3. Deselect all objects and select all meshes
+# 4. Deselect all objects and select all meshes
 bpy.ops.object.select_all(action='DESELECT')
 meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
 for obj in meshes:
@@ -30,7 +35,7 @@ if not meshes:
     print(f"Warning: No meshes found in {model_name}. Skipping export.")
     exit()
 
-# 4. Export as OBJ
+# 5. Export as OBJ
 obj_path = os.path.join(export_dir, f"{model_name}.obj")
 try:
     bpy.ops.wm.obj_export(
@@ -49,13 +54,17 @@ except AttributeError:
     )
     print(f"[{model_name}] OBJ export successful (legacy).")
 
-# 5. Export as GLB
+# 6. Export as GLB (with explicit error catching)
 glb_path = os.path.join(export_dir, f"{model_name}.glb")
-bpy.ops.export_scene.gltf(
-    filepath=glb_path,
-    export_format='GLB',
-    use_selection=True,
-    export_animations=True
-)
-print(f"[{model_name}] GLB export successful.")
+try:
+    bpy.ops.export_scene.gltf(
+        filepath=glb_path,
+        export_format='GLB',
+        use_selection=True,
+        export_animations=True
+    )
+    print(f"[{model_name}] GLB export successful.")
+except Exception as e:
+    print(f"[{model_name}] GLB export FAILED: {e}")
+
 print("Done!")
