@@ -29,7 +29,6 @@ jobs:
       - name: Run Upgrade Script (Blender 2.79b)
         run: |
           if [ -f "Models/QueenOlympias_v1.blend" ]; then
-            echo "Processing Queen Olympias..."
             ./blender_legacy/blender -b "Models/QueenOlympias_v1.blend" -P Workflows/upgrade_olympias.py
           else
             echo "File Models/QueenOlympias_v1.blend not found!"
@@ -48,14 +47,19 @@ jobs:
       - name: Run Conversion Script (Blender 4.0)
         run: |
           if [ -f "Output/QueenOlympias_v1.obj" ]; then
-            echo "Converting Olympias OBJ to GLB..."
             blender -b -P Workflows/convert_olympias.py -- "Output/QueenOlympias_v1.obj" "Output/QueenOlympias_v1.glb"
           fi
 
-      - name: Commit and Push Output
+      - name: Commit and Push Output (GLB and OBJ)
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add Output/
           git commit -m "Auto-extracted assets for Queen Olympias" || echo "No changes to commit"
           git push
+
+      - name: Upload Textures as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Olympias-Textures
+          path: Output/Textures/
