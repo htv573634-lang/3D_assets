@@ -1,0 +1,40 @@
+name: Extract Textures Only
+
+on:
+  workflow_dispatch: 
+
+jobs:
+  extract_textures:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository with LFS
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Install Legacy Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglu1-mesa libxi6 libxxf86vm1 libxfixes3 libxrender1 libgl1
+
+      - name: Download Blender 2.79b
+        run: |
+          wget -q https://download.blender.org/release/Blender2.79/blender-2.79b-linux-glibc219-x86_64.tar.bz2
+          tar -xf blender-2.79b-linux-glibc219-x86_64.tar.bz2
+          mv blender-2.79b-linux-glibc219-x86_64 blender_legacy
+
+      - name: Run Texture Extraction
+        run: |
+          if [ -f "Models/QueenOlympias_v1.blend" ]; then
+            ./blender_legacy/blender -b "Models/QueenOlympias_v1.blend" -P Workflows/extract_textures.py
+          else
+            echo "File Models/QueenOlympias_v1.blend not found!"
+            exit 1
+          fi
+
+      - name: Upload Textures as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Olympias-All-Textures
+          path: Output/Textures/
